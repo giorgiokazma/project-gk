@@ -10,9 +10,9 @@ exports.handler = async function (event) {
     const gameName = (params.gameName || "GiorgioKazma").trim();
     const tagLine = (params.tagLine || "GK26").trim().replace("#", "");
     const region = (params.region || "la2").trim();
-    const apiKey = (params.apiKey || "").trim();
+    const apikey = (params.apiKey || "").trim();
 
-    if (!apiKey || !apiKey.startsWith("RGAPI-")) {
+    if (!apikey || !apikey.startsWith("RGAPI-")) {
       return {
         statusCode: 400,
         headers,
@@ -21,9 +21,7 @@ exports.handler = async function (event) {
     }
 
     const riotFetch = async (url) => {
-      const res = await fetch(url, {
-        headers: { "X-Riot-Token": apiKey }
-      });
+      const res = await fetch(url, { headers: { "X-Riot-Token": apikey } });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
         const msg = data?.status?.message || `Error HTTP ${res.status}`;
@@ -44,4 +42,47 @@ exports.handler = async function (event) {
       riotFetch(`https://americas.api.riotgames.com/lol/match/v5/matches/by-puuid/${puuid}/ids?start=0&count=8`)
     ]);
 
-    let totalSeconds = 0, riftSeconds = 0, riftMatches = 0, aramMatches = 0,
+    let totalSeconds = 0, riftSeconds = 0, riftMatches = 0, aramMatches = 0, pentakills = 0;
+    const sampleIds = Array.isArray(matchIds) ? matchIds.slice(0, 6) : [];
+
+    const matches = await Promise.all(
+      sampleIds.map((id) => riotFetch(`https://americas.api.riotgames.com/lol/match/v5/matches/${id}`).catch(() => null))
+    );
+
+    matches.forEach((m) => {
+      if (!m || !m.info) return;
+      const dur = m.info.gameDuration || 0;
+      totalSeconds += dur;
+      if (m.info.queueId === 450) { aramMatches++; }
+      else { riftMatches++; riftSeconds += dur; }
+
+      const participant = (m.info.participants || []).find((p) => p.puuid === puuid);
+      if (participant && participant.pentakills) { pentakills += participant.pentakills; }
+    });
+
+    return {
+      statusCode: 200,
+      headers,
+      body: JSON.stringify({
+        account,
+        summoner,
+        masteries,
+        stats: {
+          matchesAnalyzed: matches.filter(Boolean).length,
+          totalHours: (totalSeconds / 3600).toFixed(1),
+          riftHours: (riftSeconds / 3600).toFixed(1),
+          riftMatches,
+          aramMatches,
+          pentakills
+        }
+      })
+    };
+
+  } catch (err) {
+    return {
+      statusCode: err.status || 500,
+      headers,
+      body: JSON.stringify({ error: err.message || "Error conectando con Riot Games API" })
+    };
+  }
+};
