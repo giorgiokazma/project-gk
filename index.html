@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Project GK - MVP Oficial Riot API</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #060913; color: #f8fafc; }
+    .hextech-border { border: 1px solid rgba(212, 175, 55, 0.45); }
+  </style>
+</head>
+<body class="min-h-screen py-6 px-4 flex flex-col items-center">
+
+  <!-- PANEL DE CONEXIÓN EN TIEMPO REAL -->
+  <div class="w-full max-w-md mb-3 bg-slate-900/95 p-3.5 rounded-2xl border border-amber-500/30 shadow-lg">
+    <div class="flex items-center justify-between mb-2">
+      <span class="text-[11px] font-extrabold uppercase tracking-wider text-amber-400">
+        ⚡ Conexión Directa Riot API (Backend Real)
+      </span>
+      <button onclick="document.getElementById('api-key-box').classList.toggle('hidden')" class="text-[10px] text-slate-400 hover:text-amber-300 underline">
+        API Key
+      </button>
+    </div>
+
+    <div id="api-key-box" class="hidden mb-2.5">
+      <input id="input-api-key" type="text" value="RGAPI-1f028f7c-0da2-4248-9f75-fc4393c9d112"
+        class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-amber-300 font-mono focus:outline-none" />
+    </div>
+
+    <div class="flex gap-1.5">
+      <input id="input-game-name" type="text" placeholder="Riot ID" value="GiorgioKazma"
+        class="flex-1 bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs font-bold text-white focus:outline-none" />
+      <input id="input-tag-line" type="text" placeholder="Tag" value="GK26"
+        class="w-20 bg-slate-950 border border-slate-700 rounded-xl px-2.5 py-2 text-xs font-bold text-amber-400 uppercase focus:outline-none" />
+      <select id="input-region" class="bg-slate-950 border border-slate-700 rounded-xl px-2 py-2 text-xs font-bold text-slate-300">
+        <option value="la2" selected>LAS</option>
+        <option value="la1">LAN</option>
+        <option value="na1">NA</option>
+        <option value="br1">BR</option>
+        <option value="euw1">EUW</option>
+      </select>
+      <button onclick="fetchRiotData()" id="btn-sync" class="px-3.5 py-2 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 font-extrabold text-xs transition-all">
+        Sincronizar
+      </button>
+    </div>
+    <p id="api-status" class="text-[10px] text-amber-400 mt-2 font-semibold">
+      Conectando al backend...
+    </p>
+  </div>
+
+  <!-- NAVEGACIÓN ENTRE LAS 3 PANTALLAS -->
+  <div class="w-full max-w-md mb-5 bg-slate-900/90 p-1.5 rounded-2xl border border-slate-800 flex gap-1 shadow-lg">
+    <button onclick="switchTab('vitrina')" id="tab-vitrina" class="flex-1 py-2 text-xs font-bold rounded-xl bg-amber-500 text-slate-950 transition-all">
+      1. La Vitrina
+    </button>
+    <button onclick="switchTab('arena')" id="tab-arena" class="flex-1 py-2 text-xs font-bold rounded-xl text-slate-400 hover:text-white transition-all">
+      2. Rankings
+    </button>
+    <button onclick="switchTab('muro')" id="tab-muro" class="flex-1 py-2 text-xs font-bold rounded-xl text-slate-400 hover:text-white transition-all">
+      3. El Muro
+    </button>
+  </div>
+
+  <!-- PANTALLA 1: LA VITRINA -->
+  <div id="screen-vitrina" class="w-full max-w-md rounded-[2rem] overflow-hidden border border-amber-500/20 shadow-2xl bg-[#0b101e] relative">
+    <div id="profile-banner" class="relative h-28 bg-cover bg-center bg-slate-900">
+      <div class="absolute inset-0 bg-gradient-to-b from-slate-950/40 via-[#0b101e]/70 to-[#0b101e]"></div>
+    </div>
+
+    <div class="px-6 pb-5 -mt-12 relative z-10 border-b border-slate-800/80">
+      <div class="flex justify-between items-end mb-3">
+        <div class="relative">
+          <div class="w-24 h-24 rounded-full p-1 bg-gradient-to-b from-amber-400 via-amber-600 to-slate-900 shadow-xl">
+            <img id="profile-avatar" src="https://ddragon.leagueoflegends.com/cdn/14.1.1/img/profileicon/29.png" class="w-full h-full rounded-full object-cover border-2 border-slate-950" />
+          </div>
+          <span id="profile-level" class="absolute -bottom-2 left-1/2 -translate-x-1/2 bg-slate-950 text-amber-400 text-[11px] font-extrabold px-2.5 py-0.5 rounded-full border border-amber-500/40 whitespace-nowrap shadow">
+            LVL --
+          </span>
+        </div>
+      </div>
+
+      <div class="mt-3">
+        <h1 id="profile-name" class="text-2xl font-extrabold text-white tracking-tight">Sincronizando...</h1>
+        <p id="profile-bio" class="text-xs text-slate-400 mt-0.5">Esperando datos oficiales de Riot Games</p>
+      </div>
+    </div>
+
+    <!-- ZONA 1: DESTACADO PRINCIPAL -->
+    <div class="px-6 pt-5">
+      <div id="hero-showcase-card" class="relative rounded-2xl overflow-hidden hextech-border h-44 shadow-2xl bg-slate-900">
+        <img id="hero-bg-img" src="" class="absolute inset-0 w-full h-full object-cover object-top hidden" />
+        <div class="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/65 to-slate-950/20"></div>
+        <div class="relative z-10 p-4 h-full flex flex-col justify-between">
+          <div class="flex justify-between items-start">
+            <span id="hero-badge-left" class="bg-gradient-to-r from-amber-400 to-yellow-300 text-slate-950 text-[10px] font-black px-3 py-1 rounded-full uppercase">
+              🏆 #1 MAESTRÍA EN CUENTA
+            </span>
+            <span id="hero-badge-right" class="bg-slate-950/85 text-amber-300 text-[10px] font-bold px-2.5 py-1 rounded-full border border-amber-500/40">
+              Nivel --
+            </span>
+          </div>
+          <div class="flex justify-between items-end gap-2">
+            <div>
+              <p id="hero-subtitle" class="text-[10px] font-extrabold uppercase tracking-widest text-amber-400">Campeón Insignia</p>
+              <h2 id="hero-title" class="text-2xl font-black text-white leading-tight mt-0.5">--</h2>
+            </div>
+            <div class="bg-slate-950/90 border border-amber-500/40 rounded-xl px-3.5 py-2 text-right">
+              <div id="hero-metric-val" class="text-lg font-black text-amber-400 leading-none">--</div>
+              <div class="text-[9px] font-bold text-slate-300 uppercase tracking-wider mt-1">Pts de Maestría</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ZONA 2: GRILLA DE 4 DESTACADOS -->
+    <div class="px-6 pt-5">
+      <div class="grid grid-cols-2 gap-3">
+        <div class="p-4 rounded-2xl bg-slate-900/90 border border-slate-800">
+          <span id="stat1-tag" class="text-[10px] font-bold uppercase tracking-wider text-teal-400">Tiempo Reciente</span>
+          <div id="stat1-val" class="text-2xl font-black text-white mt-1">--</div>
+          <div class="text-xs text-slate-400 font-medium mt-0.5">Horas Reales en LoL</div>
+        </div>
+        <div class="p-4 rounded-2xl bg-slate-900/90 border border-slate-800">
+          <span class="text-[10px] font-bold uppercase tracking-wider text-amber-400">Combate</span>
+          <div id="stat2-val" class="text-2xl font-black text-white mt-1">--</div>
+          <div class="text-xs text-slate-400 font-medium mt-0.5">Pentakills (Muestra)</div>
+        </div>
+        <div class="p-4 rounded-2xl bg-slate-900/90 border border-slate-800">
+          <span id="stat3-tag" class="text-[10px] font-bold uppercase tracking-wider text-sky-400">Grieta</span>
+          <div id="stat3-val" class="text-2xl font-black text-white mt-1">--</div>
+          <div class="text-xs text-slate-400 font-medium mt-0.5">Horas en Grieta</div>
+        </div>
+        <div class="p-4 rounded-2xl bg-slate-900/90 border border-slate-800">
+          <span class="text-[10px] font-bold uppercase tracking-wider text-purple-400">Abismo</span>
+          <div id="stat4-val" class="text-2xl font-black text-white mt-1">--</div>
+          <div class="text-xs text-slate-400 font-medium mt-0.5">Partidas en ARAM</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ZONA 3: CAMPEONES #2 Y #3 -->
+    <div class="p-6 pt-5 pb-8 space-y-3.5">
+      <div class="relative rounded-2xl overflow-hidden border border-amber-500/30 h-32 bg-slate-900">
+        <img id="champ2-img" src="" class="absolute inset-0 w-full h-full object-cover object-center hidden" />
+        <div class="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/60 to-transparent"></div>
+        <div class="relative z-10 p-3.5 h-full flex flex-col justify-between">
+          <div class="flex justify-between items-start">
+            <span class="bg-amber-400 text-slate-950 text-[10px] font-extrabold px-2.5 py-0.5 rounded-md">🏅 TOP #2 MAESTRÍA</span>
+            <span id="champ2-lvl" class="bg-slate-950/80 text-slate-200 text-[10px] font-bold px-2.5 py-0.5 rounded-md border border-slate-700">--</span>
+          </div>
+          <div class="flex justify-between items-end">
+            <h3 id="champ2-name" class="text-xl font-black text-white">--</h3>
+            <div class="bg-slate-950/85 border border-amber-500/30 rounded-xl px-3 py-1 text-right">
+              <div id="champ2-pts" class="text-sm font-black text-amber-400">--</div>
+              <div class="text-[8px] font-bold text-slate-300 uppercase">Pts de Maestría</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="relative rounded-2xl overflow-hidden border border-teal-500/30 h-32 bg-slate-900">
+        <img id="champ3-img" src="" class="absolute inset-0 w-full h-full object-cover object-center hidden" />
+        <div class="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/60 to-transparent"></div>
+        <div class="relative z-10 p-3.5 h-full flex flex-col justify-between">
+          <div class="flex justify-between items-start">
+            <span class="bg-teal-400 text-slate-950 text-[10px] font-extrabold px-2.5 py-0.5 rounded-md">🏅 TOP #3 MAESTRÍA</span>
+            <span id="champ3-lvl" class="bg-slate-950/80 text-slate-200 text-[10px] font-bold px-2.5 py-0.5 rounded-md border border-slate-700">--</span>
+          </div>
+          <div class="flex justify-between items-end">
+            <h3 id="champ3-name" class="text-xl font-black text-white">--</h3>
+            <div class="bg-slate-950/85 border border-teal-500/30 rounded-xl px-3 py-1 text-right">
+              <div id="champ3-pts" class="text-sm font-black text-teal-400">--</div>
+              <div class="text-[8px] font-bold text-slate-300 uppercase">Pts de Maestría</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PANTALLA 2: RANKINGS -->
+  <div id="screen-arena" class="hidden w-full max-w-md rounded-[2rem] overflow-hidden border border-slate-800 shadow-2xl bg-[#0b101e] p-6">
+    <h1 class="text-2xl font-extrabold text-white mb-4">La Arena • Rankings</h1>
+    <div class="p-4 rounded-2xl bg-slate-900 border border-teal-400/60 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <span class="w-8 h-8 rounded-full bg-amber-400 text-slate-950 font-black text-xs flex items-center justify-center">#1</span>
+        <img id="lb-avatar" src="https://ddragon.leagueoflegends.com/cdn/14.1.1/img/profileicon/29.png" class="w-11 h-11 rounded-full border border-teal-400" />
+        <div>
+          <div id="lb-name" class="font-extrabold text-white text-sm">--</div>
+          <div id="lb-sub" class="text-[11px] text-slate-400">--</div>
+        </div>
+      </div>
+      <div class="text-right">
+        <div id="lb-val" class="text-lg font-black text-amber-400">--</div>
+        <div class="text-[9px] font-bold uppercase text-slate-400">Pts Maestría #1</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PANTALLA 3: EL MURO -->
+  <div id="screen-muro" class="hidden w-full max-w-md rounded-[2rem] overflow-hidden border border-slate-800 shadow-2xl bg-[#0b101e] p-6">
+    <h1 class="text-2xl font-extrabold text-white mb-4">El Muro de Hitos</h1>
+    <div class="p-4 rounded-2xl bg-slate-900/90 border border-slate-800">
+      <div id="feed-text" class="text-xs text-slate-200 leading-relaxed">Sincroniza un jugador para generar su hito verificado.</div>
+    </div>
+  </div>
+
+  <script>
+    async function fetchRiotData() {
+      const statusEl = document.getElementById('api-status');
+      const btn = document.getElementById('btn-sync');
+      const gameName = document.getElementById('input-game-name').value.trim();
+      const tagLine = document.getElementById('input-tag-line').value.trim().replace('#', '');
+      const region = document.getElementById('input-region').value;
+      const apiKey = document.getElementById('input-api-key').value.trim();
+
+      try {
+        btn.disabled = true;
+        btn.innerText = 'Cargando...';
+        statusEl.className = 'text-[10px] text-amber-400 mt-2 font-semibold';
+        statusEl.innerText = `Consultando API oficial de Riot para ${gameName}#${tagLine}...`;
+
+        // 1. Obtener versión y campeones de Data Dragon
+        const verRes = await fetch('https://ddragon.leagueoflegends.com/api/versions.json');
+        const ddVer = (await verRes.json())[0];
+        const champRes = await fetch(`https://ddragon.leagueoflegends.com/cdn/${ddVer}/data/es_MX/champion.json`);
+        const champJson = await champRes.json();
+        const champById = {};
+        Object.values(champJson.data).forEach(c => { champById[c.key] = c; });
+
+        // 2. Llamar a nuestro Backend (Netlify Function o server.py local)
+        const query = new URLSearchParams({ gameName, tagLine, region, apiKey });
+        const res = await fetch(`/.netlify/functions/riot?${query.toString()}`);
+        const data = await res.json();
+
+        if (!res.ok || data.error) {
+          throw new Error(data.error || `Error HTTP ${res.status}`);
+        }
+
+        // Validación estricta para que jamás aparezca "undefined"
+        if (!data.account || !data.account.gameName) {
+          throw new Error("Respuesta incompleta del servidor.");
+        }
+
+        const avatarUrl = `https://ddragon.leagueoflegends.com/cdn/${ddVer}/img/profileicon/${data.summoner.profileIconId}.png`;
+        document.getElementById('profile-avatar').src = avatarUrl;
+        document.getElementById('lb-avatar').src = avatarUrl;
+        document.getElementById('profile-level').innerText = `LVL ${data.summoner.summonerLevel}`;
+        document.getElementById('profile-name').innerText = `${data.account.gameName} #${data.account.tagLine}`;
+        document.getElementById('lb-name').innerText = data.account.gameName;
+
+        // Campeones con más maestría
+        const masteries = data.masteries || [];
+        if (masteries[0]) {
+          const c1 = champById[String(masteries[0].championId)] || { id: 'Gangplank', name: 'Campeón', title: '' };
+          const pts1 = masteries[0].championPoints.toLocaleString('es-CL');
+          const splash1 = `https://ddragon.leagueoflegends.com/cdn/img/champion/splash/${c1.id}_0.jpg`;
+
+          document.getElementById('profile-banner').style.backgroundImage = `url('${splash1}')`;
+          document.getElementById('profile-bio').innerText = `Main ${c1.name} • Nivel ${data.summoner.summonerLevel} Oficial`;
+          document.getElementById('hero-bg-img').src = splash1;
+          document.getElementById('hero-bg-img').classList.remove('hidden');
+          document.getElementById('hero-badge-right').innerText = `Maestría Nivel ${masteries[0].championLevel}`;
+          document.getElementById('hero-subtitle').innerText = c1.title;
+          document.getElementById('hero-title').innerText = c1.name;
+          document.getElementById('hero-metric-val').innerText = pts1;
+
+          document.getElementById('lb-sub').innerText = `Main ${c1.name} (Nivel ${masteries[0].championLevel})`;
+          document.getElementById('lb-val').innerText = pts1;
+          document.getElementById('feed-text').innerHTML = `<span class="font-extrabold text-white">${data.account.gameName}</span> registra <span class="font-extrabold text-amber-400">${pts1} puntos de maestría</span> con <span class="font-extrabold text-white">${c1.name}</span> (Nivel ${masteries[0].championLevel}).`;
+        }
+
+        if (masteries[1]) {
+          const c2 = champById[String(masteries[1].championId)];
+          if (c2) {
+            document.getElementById('champ2-img').src = `https://ddragon.leagueoflegends.com/cdn/img/champion/splash/${c2.id}_0.jpg`;
+            document.getElementById('champ2-img').classList.remove('hidden');
+            document.getElementById('champ2-name').innerText = c2.name;
+            document.getElementById('champ2-pts').innerText = masteries[1].championPoints.toLocaleString('es-CL');
+            document.getElementById('champ2-lvl').innerText = `Maestría Nivel ${masteries[1].championLevel}`;
+          }
+        }
+
+        if (masteries[2]) {
+          const c3 = champById[String(masteries[2].championId)];
+          if (c3) {
+            document.getElementById('champ3-img').src = `https://ddragon.leagueoflegends.com/cdn/img/champion/splash/${c3.id}_0.jpg`;
+            document.getElementById('champ3-img').classList.remove('hidden');
+            document.getElementById('champ3-name').innerText = c3.name;
+            document.getElementById('champ3-pts').innerText = masteries[2].championPoints.toLocaleString('es-CL');
+            document.getElementById('champ3-lvl').innerText = `Maestría Nivel ${masteries[2].championLevel}`;
+          }
+        }
+
+        // Estadísticas de partidas
+        document.getElementById('stat1-tag').innerText = `Últimas ${data.stats.matchesAnalyzed} Partidas`;
+        document.getElementById('stat1-val').innerText = `${data.stats.totalHours}h`;
+        document.getElementById('stat2-val').innerText = data.stats.pentakills;
+        document.getElementById('stat3-tag').innerText = `${data.stats.riftMatches} Partidas Grieta`;
+        document.getElementById('stat3-val').innerText = `${data.stats.riftHours}h`;
+        document.getElementById('stat4-val').innerText = data.stats.aramMatches;
+
+        statusEl.className = 'text-[10px] text-teal-400 mt-2 font-bold';
+        statusEl.innerText = `✅ Conectado en vivo: Datos reales de ${data.account.gameName}#${data.account.tagLine}`;
+      } catch (err) {
+        statusEl.className = 'text-[10px] text-rose-400 mt-2 font-semibold';
+        statusEl.innerText = `❌ ${err.message} (Asegúrate de abrirlo mediante server.py o Netlify, no como archivo suelto).`;
+      } finally {
+        btn.disabled = false;
+        btn.innerText = 'Sincronizar';
+      }
+    }
+
+    function switchTab(tab) {
+      ['vitrina', 'arena', 'muro'].forEach(t => {
+        document.getElementById('screen-' + t).classList.add('hidden');
+        document.getElementById('tab-' + t).className = 'flex-1 py-2 text-xs font-bold rounded-xl text-slate-400 hover:text-white transition-all';
+      });
+      document.getElementById('screen-' + tab).classList.remove('hidden');
+      document.getElementById('tab-' + tab).className = 'flex-1 py-2 text-xs font-bold rounded-xl bg-amber-500 text-slate-950 transition-all';
+    }
+
+    window.addEventListener('DOMContentLoaded', fetchRiotData);
+  </script>
+</body>
+</html>
