@@ -19,7 +19,7 @@
       <button onclick="document.getElementById('api-key-box').classList.toggle('hidden')" class="text-[10px] text-slate-400 underline">API Key</button>
     </div>
     <div id="api-key-box" class="hidden mb-2.5">
-      <input id="input-api-key" type="text" value="RGAPI-1f028f7c-0da2-4248-9f75-fc4393c9d112" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-amber-300 font-mono focus:outline-none" />
+      <input id="input-api-key" type="text" value="RGAPI-c271bee8-ff22-4dfb-990b-66faf046f280" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-amber-300 font-mono focus:outline-none" />
     </div>
     <div class="flex gap-1.5">
       <input id="input-game-name" type="text" placeholder="Riot ID" value="GiorgioKazma" class="flex-1 bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs font-bold text-white focus:outline-none" />
@@ -31,7 +31,7 @@
       </select>
       <button onclick="fetchRiotData()" id="btn-sync" class="px-3.5 py-2 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 font-extrabold text-xs">Sincronizar</button>
     </div>
-    <p id="api-status" class="text-[10px] text-amber-400 mt-2 font-semibold">Conectando al backend...</p>
+    <p id="api-status" class="text-[10px] text-amber-400 mt-2 font-semibold">Esperando acción...</p>
   </div>
 
   <!-- NAVEGACIÓN -->
@@ -146,9 +146,23 @@
     </div>
   </div>
 
-  <!-- PANTALLA 2: RANKINGS DINÁMICO -->
+  <!-- PANTALLA 2: RANKINGS DINÁMICO CON FILTROS -->
   <div id="screen-arena" class="hidden w-full max-w-md rounded-[2rem] overflow-hidden border border-slate-800 shadow-2xl p-6 bg-slate-950">
-    <h1 class="text-2xl font-extrabold text-white mb-4">La Arena Rankings</h1>
+    <div class="flex justify-between items-center mb-4">
+      <h1 class="text-2xl font-extrabold text-white">La Arena Rankings</h1>
+    </div>
+
+    <!-- SELECTOR DE MÉTRICAS RESTAURADO -->
+    <div class="mb-5">
+      <label class="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-2">Filtrar Ranking por:</label>
+      <select id="leaderboard-metric" onchange="renderLeaderboard()" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs font-bold text-white focus:outline-none">
+        <option value="maestria">Mayor Maestría (Campeón Main)</option>
+        <option value="pentakills">Más Pentakills (Muestra Reciente)</option>
+        <option value="horas_total">Más Horas Jugadas (Muestra Reciente)</option>
+        <option value="partidas_aram">Más Partidas ARAM (Muestra Reciente)</option>
+      </select>
+    </div>
+
     <div id="leaderboard-list" class="space-y-3">
       <p class="text-xs text-slate-400 text-center py-4">Sincroniza jugadores para llenar el ranking.</p>
     </div>
@@ -163,13 +177,36 @@
   </div>
 
   <script>
+    // Se redibuja el ranking basándose en el filtro seleccionado
     function renderLeaderboard() {
       const board = JSON.parse(localStorage.getItem('gk_leaderboard')) || [];
       const container = document.getElementById('leaderboard-list');
-      if (board.length === 0) return;
+      const metric = document.getElementById('leaderboard-metric').value;
+
+      if (board.length === 0) {
+        container.innerHTML = '<p class="text-xs text-slate-400 text-center py-4">Sincroniza jugadores para llenar el ranking.</p>';
+        return;
+      }
       
       container.innerHTML = '';
-      board.sort((a, b) => b.pts - a.pts).forEach((p, i) => {
+      
+      // Ordenamiento dinámico
+      board.sort((a, b) => {
+        if (metric === 'pentakills') return b.pentakills - a.pentakills;
+        if (metric === 'horas_total') return b.horas - a.horas;
+        if (metric === 'partidas_aram') return b.aram - a.aram;
+        return b.pts - a.pts; // Por defecto: Maestría
+      });
+
+      board.forEach((p, i) => {
+        let valDisplay = '';
+        let valLabel = '';
+        
+        if (metric === 'pentakills') { valDisplay = p.pentakills; valLabel = 'Pentakills'; }
+        else if (metric === 'horas_total') { valDisplay = p.horas + 'h'; valLabel = 'Horas Reales'; }
+        else if (metric === 'partidas_aram') { valDisplay = p.aram; valLabel = 'Partidas ARAM'; }
+        else { valDisplay = p.pts.toLocaleString('es-CL'); valLabel = 'Pts Maestría'; }
+
         container.innerHTML += `
         <div class="p-4 rounded-2xl bg-slate-900 border ${i === 0 ? 'border-amber-400/60' : 'border-slate-800'} flex items-center justify-between">
           <div class="flex items-center gap-3">
@@ -181,13 +218,14 @@
             </div>
           </div>
           <div class="text-right">
-            <div class="text-lg font-black ${i === 0 ? 'text-amber-400' : 'text-white'}">${p.pts.toLocaleString('es-CL')}</div>
-            <div class="text-[9px] font-bold uppercase text-slate-400">Pts Maestría</div>
+            <div class="text-lg font-black ${i === 0 ? 'text-amber-400' : 'text-white'}">${valDisplay}</div>
+            <div class="text-[9px] font-bold uppercase text-slate-400">${valLabel}</div>
           </div>
         </div>`;
       });
     }
 
+    // Guarda los nuevos parámetros para permitir el filtrado
     function savePlayer(player) {
       let board = JSON.parse(localStorage.getItem('gk_leaderboard')) || [];
       const index = board.findIndex(p => p.name === player.name && p.tag === player.tag);
@@ -281,12 +319,16 @@
         statusEl.className = 'text-[10px] text-teal-400 mt-2 font-bold';
         statusEl.innerText = `Conectado en vivo: ${data.account.gameName}`;
 
+        // Almacenamiento extendido para los filtros
         savePlayer({
           name: data.account.gameName,
           tag: data.account.tagLine,
           avatar: avatarUrl,
           mainChamp: mainChampName,
-          pts: ptsRaw
+          pts: ptsRaw,
+          pentakills: data.stats.pentakills || 0,
+          horas: parseFloat(data.stats.totalHours) || 0,
+          aram: data.stats.aramMatches || 0
         });
 
       } catch (err) {
