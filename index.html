@@ -171,4 +171,146 @@
       container.innerHTML = '';
       board.sort((a, b) => b.pts - a.pts).forEach((p, i) => {
         container.innerHTML += `
-        <div class="p-4 rounded-2xl bg-slate
+        <div class="p-4 rounded-2xl bg-slate-900 border ${i === 0 ? 'border-amber-400/60' : 'border-slate-800'} flex items-center justify-between">
+          <div class="flex items-center gap-3">
+            <span class="w-8 h-8 rounded-full ${i === 0 ? 'bg-amber-400 text-slate-950' : 'bg-slate-800 text-slate-400'} font-black text-xs flex items-center justify-center">${i + 1}</span>
+            <img src="${p.avatar}" class="w-11 h-11 rounded-full border border-slate-700">
+            <div>
+              <div class="font-extrabold text-white text-sm">${p.name}</div>
+              <div class="text-[11px] text-slate-400">Main ${p.mainChamp}</div>
+            </div>
+          </div>
+          <div class="text-right">
+            <div class="text-lg font-black ${i === 0 ? 'text-amber-400' : 'text-white'}">${p.pts.toLocaleString('es-CL')}</div>
+            <div class="text-[9px] font-bold uppercase text-slate-400">Pts Maestría</div>
+          </div>
+        </div>`;
+      });
+    }
+
+    function savePlayer(player) {
+      let board = JSON.parse(localStorage.getItem('gk_leaderboard')) || [];
+      const index = board.findIndex(p => p.name === player.name && p.tag === player.tag);
+      if (index !== -1) { board[index] = player; } else { board.push(player); }
+      localStorage.setItem('gk_leaderboard', JSON.stringify(board));
+      renderLeaderboard();
+    }
+
+    async function fetchRiotData() {
+      const statusEl = document.getElementById('api-status');
+      const btn = document.getElementById('btn-sync');
+      const gameName = document.getElementById('input-game-name').value.trim();
+      const tagLine = document.getElementById('input-tag-line').value.trim().replace('#','');
+      const region = document.getElementById('input-region').value;
+      const apiKey = document.getElementById('input-api-key').value.trim();
+
+      try {
+        btn.disabled = true;
+        btn.innerText = 'Cargando...';
+        statusEl.className = 'text-[10px] text-amber-400 mt-2 font-semibold';
+        statusEl.innerText = `Consultando API oficial de Riot para ${gameName}#${tagLine}...`;
+
+        const verRes = await fetch('https://ddragon.leagueoflegends.com/api/versions.json');
+        const ddVer = (await verRes.json())[0];
+        const champRes = await fetch(`https://ddragon.leagueoflegends.com/cdn/${ddVer}/data/es_MX/champion.json`);
+        const champJson = await champRes.json();
+        const champById = {};
+        Object.values(champJson.data).forEach(c => { champById[c.key] = c; });
+
+        const query = new URLSearchParams({ gameName, tagLine, region, apiKey });
+        const res = await fetch(`/.netlify/functions/riot?${query.toString()}`);
+        const data = await res.json();
+
+        if (!res.ok || data.error) throw new Error(data.error || `Error HTTP ${res.status}`);
+        if (!data.account || !data.account.gameName) throw new Error("Respuesta incompleta del servidor.");
+
+        const avatarUrl = `https://ddragon.leagueoflegends.com/cdn/${ddVer}/img/profileicon/${data.summoner.profileIconId}.png`;
+        document.getElementById('profile-avatar').src = avatarUrl;
+        document.getElementById('profile-level').innerText = `LVL ${data.summoner.summonerLevel}`;
+        document.getElementById('profile-name').innerText = `${data.account.gameName} #${data.account.tagLine}`;
+
+        const masteries = data.masteries || [];
+        let mainChampName = '--';
+        let ptsRaw = 0;
+
+        if (masteries[0]) {
+          const c1 = champById[String(masteries[0].championId)] || { id: 'Gangplank', name: 'Campeón', title: '' };
+          mainChampName = c1.name;
+          ptsRaw = masteries[0].championPoints;
+          const splash1 = `https://ddragon.leagueoflegends.com/cdn/img/champion/splash/${c1.id}_0.jpg`;
+          
+          document.getElementById('profile-banner').style.backgroundImage = `url('${splash1}')`;
+          document.getElementById('profile-bio').innerText = `Main ${c1.name} (Nivel ${data.summoner.summonerLevel})`;
+          document.getElementById('hero-bg-img').src = splash1;
+          document.getElementById('hero-bg-img').classList.remove('hidden');
+          document.getElementById('hero-badge-right').innerText = `Nivel ${masteries[0].championLevel}`;
+          document.getElementById('hero-title').innerText = c1.name;
+          document.getElementById('hero-metric-val').innerText = ptsRaw.toLocaleString('es-CL');
+          document.getElementById('feed-text').innerHTML = `<span class="font-extrabold text-white">${data.account.gameName}</span> sincronizó su cuenta y lidera con ${c1.name}.`;
+        }
+
+        if (masteries[1]) {
+          const c2 = champById[String(masteries[1].championId)];
+          if (c2) {
+            document.getElementById('champ2-img').src = `https://ddragon.leagueoflegends.com/cdn/img/champion/splash/${c2.id}_0.jpg`;
+            document.getElementById('champ2-img').classList.remove('hidden');
+            document.getElementById('champ2-name').innerText = c2.name;
+            document.getElementById('champ2-pts').innerText = masteries[1].championPoints.toLocaleString('es-CL');
+            document.getElementById('champ2-lvl').innerText = `Nivel ${masteries[1].championLevel}`;
+          }
+        }
+
+        if (masteries[2]) {
+          const c3 = champById[String(masteries[2].championId)];
+          if (c3) {
+            document.getElementById('champ3-img').src = `https://ddragon.leagueoflegends.com/cdn/img/champion/splash/${c3.id}_0.jpg`;
+            document.getElementById('champ3-img').classList.remove('hidden');
+            document.getElementById('champ3-name').innerText = c3.name;
+            document.getElementById('champ3-pts').innerText = masteries[2].championPoints.toLocaleString('es-CL');
+            document.getElementById('champ3-lvl').innerText = `Nivel ${masteries[2].championLevel}`;
+          }
+        }
+
+        document.getElementById('stat1-tag').innerText = `Últimas ${data.stats.matchesAnalyzed} Partidas`;
+        document.getElementById('stat1-val').innerText = `${data.stats.totalHours}h`;
+        document.getElementById('stat2-val').innerText = data.stats.pentakills;
+        document.getElementById('stat3-tag').innerText = `${data.stats.riftMatches} Partidas Grieta`;
+        document.getElementById('stat3-val').innerText = `${data.stats.riftHours}h`;
+        document.getElementById('stat4-val').innerText = data.stats.aramMatches;
+
+        statusEl.className = 'text-[10px] text-teal-400 mt-2 font-bold';
+        statusEl.innerText = `Conectado en vivo: ${data.account.gameName}`;
+
+        savePlayer({
+          name: data.account.gameName,
+          tag: data.account.tagLine,
+          avatar: avatarUrl,
+          mainChamp: mainChampName,
+          pts: ptsRaw
+        });
+
+      } catch (err) {
+        statusEl.className = 'text-[10px] text-rose-400 mt-2 font-semibold';
+        statusEl.innerText = `✗ ${err.message}`;
+      } finally {
+        btn.disabled = false;
+        btn.innerText = 'Sincronizar';
+      }
+    }
+
+    function switchTab(tab) {
+      ['vitrina', 'arena', 'muro'].forEach(t => {
+        document.getElementById('screen-' + t).classList.add('hidden');
+        document.getElementById('tab-' + t).className = 'flex-1 py-2 text-xs font-bold rounded-xl text-slate-400 hover:text-white transition-all';
+      });
+      document.getElementById('screen-' + tab).classList.remove('hidden');
+      document.getElementById('tab-' + tab).className = 'flex-1 py-2 text-xs font-bold rounded-xl bg-amber-500 text-slate-950 transition-all';
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+      renderLeaderboard();
+      fetchRiotData();
+    });
+  </script>
+</body>
+</html>
