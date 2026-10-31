@@ -179,17 +179,17 @@
   </div>
 
   <script>
-    // 1. INICIALIZAR SUPABASE
+    // 1. INICIALIZAR SUPABASE CON VARIABLE SEGURA 'db'
     const supabaseUrl = 'https://skbldoljazqzgybvlybp.supabase.co';
     const supabaseKey = 'sb_publishable_ktkzsIAjh8gXWQnt519qjg_GlixCYl4';
-    const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
+    const db = window.supabase.createClient(supabaseUrl, supabaseKey);
 
     // 2. DESCARGAR Y RENDERIZAR RANKINGS
     async function renderLeaderboard() {
       const container = document.getElementById('leaderboard-list');
       const metric = document.getElementById('leaderboard-metric').value;
 
-      const { data: board, error } = await supabase.from('gk_players').select('*');
+      const { data: board, error } = await db.from('gk_players').select('*');
 
       if (error || !board || board.length === 0) {
         container.innerHTML = '<p class="text-xs text-slate-400 text-center py-4">La arena está vacía. ¡Sincroniza al primer jugador!</p>';
@@ -233,7 +233,7 @@
     // 3. DESCARGAR Y RENDERIZAR EL MURO
     async function renderFeed() {
       const container = document.getElementById('feed-container');
-      const { data: feed, error } = await supabase.from('gk_feed').select('*').order('created_at', { ascending: false }).limit(15);
+      const { data: feed, error } = await db.from('gk_feed').select('*').order('created_at', { ascending: false }).limit(15);
 
       if (error || !feed || feed.length === 0) {
           container.innerHTML = '<div class="p-4 rounded-2xl bg-slate-900/90 border border-slate-800"><div class="text-xs text-slate-200 text-center py-2">El muro está vacío. ¡Sincroniza un perfil para crear historia!</div></div>';
@@ -276,7 +276,7 @@
     async function savePlayerData(player) {
       const riot_id = `${player.name}#${player.tag}`;
       
-      await supabase.from('gk_players').upsert({
+      await db.from('gk_players').upsert({
         riot_id: riot_id,
         name: player.name,
         tag: player.tag,
@@ -290,7 +290,7 @@
 
       const msg = `Se conectó al radar oficial. Destaca con <span class="font-extrabold text-white">${player.pts.toLocaleString('es-CL')} pts</span> usando a <span class="font-extrabold text-amber-400">${player.mainChamp}</span> y acumula <span class="font-extrabold text-teal-400">${player.horas}h reales</span> jugadas recientemente.`;
       
-      await supabase.from('gk_feed').insert({
+      await db.from('gk_feed').insert({
         name: player.name,
         avatar: player.avatar,
         message: msg
