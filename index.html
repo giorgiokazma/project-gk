@@ -5,6 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Project GK - MVP Oficial Riot API</title>
   <script src="https://cdn.tailwindcss.com"></script>
+  <!-- LIBRERÍA SUPABASE -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <style>
     body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #060913; color: #f8fafc; }
@@ -16,8 +18,8 @@
   <!-- PANEL DE CONEXIÓN EN TIEMPO REAL -->
   <div class="w-full max-w-md mb-3 bg-slate-900/95 p-3.5 rounded-2xl border border-amber-500/30 shadow-lg">
     <div class="flex items-center justify-between mb-2">
-      <span class="text-[11px] font-extrabold uppercase tracking-wider text-amber-400">Conexión Directa Riot API</span>
-      <button onclick="document.getElementById('api-key-box').classList.toggle('hidden')" class="text-[10px] text-slate-400 hover:text-amber-300 underline">API Key</button>
+      <span class="text-[11px] font-extrabold uppercase tracking-wider text-amber-400">⚡ Conexión Directa a la Nube (Riot + Supabase)</span>
+      <button onclick="document.getElementById('api-key-box').classList.toggle('hidden')" class="text-[10px] text-slate-400 hover:text-amber-300 underline">API Key Riot</button>
     </div>
 
     <div id="api-key-box" class="hidden mb-2.5">
@@ -34,7 +36,7 @@
       </select>
       <button onclick="fetchRiotData()" id="btn-sync" class="px-3.5 py-2 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 font-extrabold text-xs transition-all">Sincronizar</button>
     </div>
-    <p id="api-status" class="text-[10px] text-amber-400 mt-2 font-semibold">Esperando acción...</p>
+    <p id="api-status" class="text-[10px] text-amber-400 mt-2 font-semibold">Base de datos global en línea.</p>
   </div>
 
   <!-- NAVEGACIÓN -->
@@ -55,12 +57,11 @@
         <span id="profile-level" class="absolute -bottom-2 left-1/2 -translate-x-1/2 bg-slate-950 text-amber-400 text-[11px] font-extrabold px-2.5 py-0.5 rounded-full border border-amber-500/40 whitespace-nowrap shadow">LVL --</span>
       </div>
       <div class="mt-3">
-        <h1 id="profile-name" class="text-2xl font-extrabold text-white tracking-tight">Sincronizando...</h1>
-        <p id="profile-bio" class="text-xs text-slate-400 mt-0.5">Esperando datos oficiales de Riot Games</p>
+        <h1 id="profile-name" class="text-2xl font-extrabold text-white tracking-tight">Cargando...</h1>
+        <p id="profile-bio" class="text-xs text-slate-400 mt-0.5">Sincroniza para ver un perfil</p>
       </div>
     </div>
 
-    <!-- ZONA 1: DESTACADO -->
     <div class="px-6 pt-5">
       <div id="hero-showcase-card" class="relative rounded-2xl overflow-hidden hextech-border h-44 shadow-2xl bg-slate-900">
         <img id="hero-bg-img" src="" class="absolute inset-0 w-full h-full object-cover object-top hidden" />
@@ -84,7 +85,6 @@
       </div>
     </div>
 
-    <!-- ZONA 2: GRILLA -->
     <div class="px-6 pt-5">
       <div class="grid grid-cols-2 gap-3">
         <div class="p-4 rounded-2xl bg-slate-900/90 border border-slate-800">
@@ -110,7 +110,6 @@
       </div>
     </div>
 
-    <!-- ZONA 3: SECUNDARIOS -->
     <div class="p-6 pt-5 pb-8 space-y-3.5">
       <div class="relative rounded-2xl overflow-hidden border border-amber-500/30 h-32 bg-slate-900">
         <img id="champ2-img" src="" class="absolute inset-0 w-full h-full object-cover object-center hidden" />
@@ -150,10 +149,10 @@
     </div>
   </div>
 
-  <!-- PANTALLA 2: RANKINGS DINÁMICO -->
+  <!-- PANTALLA 2: RANKINGS CON SUPABASE -->
   <div id="screen-arena" class="hidden w-full max-w-md rounded-[2rem] overflow-hidden border border-slate-800 shadow-2xl bg-[#0b101e] p-6">
     <div class="flex justify-between items-center mb-4">
-      <h1 class="text-2xl font-extrabold text-white">La Arena • Rankings</h1>
+      <h1 class="text-2xl font-extrabold text-white">La Arena • Global</h1>
     </div>
     <div class="mb-5">
       <label class="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-2">Filtrar Ranking por:</label>
@@ -165,242 +164,22 @@
       </select>
     </div>
     <div id="leaderboard-list" class="space-y-3">
-      <p class="text-xs text-slate-400 text-center py-4">Sincroniza jugadores para llenar el ranking.</p>
+      <p class="text-xs text-slate-400 text-center py-4">Buscando jugadores en la nube...</p>
     </div>
   </div>
 
-  <!-- PANTALLA 3: EL MURO (NUEVO FEED DINÁMICO) -->
+  <!-- PANTALLA 3: EL MURO CON SUPABASE -->
   <div id="screen-muro" class="hidden w-full max-w-md rounded-[2rem] overflow-hidden border border-slate-800 shadow-2xl bg-[#0b101e] p-6">
-    <h1 class="text-2xl font-extrabold text-white mb-4">El Muro de Hitos</h1>
+    <h1 class="text-2xl font-extrabold text-white mb-4">El Muro Global</h1>
     <div id="feed-container" class="space-y-4">
       <div class="p-4 rounded-2xl bg-slate-900/90 border border-slate-800">
-        <div class="text-xs text-slate-200 text-center py-2">El muro está vacío. ¡Sincroniza el primer perfil!</div>
+        <div class="text-xs text-slate-200 text-center py-2">Cargando publicaciones...</div>
       </div>
     </div>
   </div>
 
   <script>
-    // -----------------------------------------------------
-    // SISTEMA DE RANKINGS (LA ARENA)
-    // -----------------------------------------------------
-    function renderLeaderboard() {
-      const board = JSON.parse(localStorage.getItem('gk_leaderboard')) || [];
-      const container = document.getElementById('leaderboard-list');
-      const metric = document.getElementById('leaderboard-metric').value;
-
-      if (board.length === 0) {
-        container.innerHTML = '<p class="text-xs text-slate-400 text-center py-4">Sincroniza jugadores para llenar el ranking.</p>';
-        return;
-      }
-      container.innerHTML = '';
-      
-      board.sort((a, b) => {
-        if (metric === 'pentakills') return b.pentakills - a.pentakills;
-        if (metric === 'horas_total') return b.horas - a.horas;
-        if (metric === 'partidas_aram') return b.aram - a.aram;
-        return b.pts - a.pts; 
-      });
-
-      board.forEach((p, i) => {
-        let valDisplay = '', valLabel = '';
-        if (metric === 'pentakills') { valDisplay = p.pentakills; valLabel = 'Pentakills'; }
-        else if (metric === 'horas_total') { valDisplay = p.horas + 'h'; valLabel = 'Horas Reales'; }
-        else if (metric === 'partidas_aram') { valDisplay = p.aram; valLabel = 'Partidas ARAM'; }
-        else { valDisplay = p.pts.toLocaleString('es-CL'); valLabel = 'Pts Maestría'; }
-
-        container.innerHTML += `
-          <div class="p-4 rounded-2xl bg-slate-900 border ${i === 0 ? 'border-amber-400/60' : 'border-slate-800'} flex items-center justify-between">
-            <div class="flex items-center gap-3">
-              <span class="w-8 h-8 rounded-full ${i === 0 ? 'bg-amber-400 text-slate-950' : 'bg-slate-800 text-slate-400'} font-black text-xs flex items-center justify-center">#${i + 1}</span>
-              <img src="${p.avatar}" class="w-11 h-11 rounded-full border border-slate-700">
-              <div>
-                <div class="font-extrabold text-white text-sm">${p.name}</div>
-                <div class="text-[11px] text-slate-400">Main ${p.mainChamp}</div>
-              </div>
-            </div>
-            <div class="text-right">
-              <div class="text-lg font-black ${i === 0 ? 'text-amber-400' : 'text-white'}">${valDisplay}</div>
-              <div class="text-[9px] font-bold uppercase text-slate-400">${valLabel}</div>
-            </div>
-          </div>`;
-      });
-    }
-
-    // -----------------------------------------------------
-    // SISTEMA DEL MURO DE HITOS (FEED)
-    // -----------------------------------------------------
-    function renderFeed() {
-      const feed = JSON.parse(localStorage.getItem('gk_feed')) || [];
-      const container = document.getElementById('feed-container');
-
-      if (feed.length === 0) return;
-      container.innerHTML = '';
-
-      feed.forEach(post => {
-        container.innerHTML += `
-          <div class="p-4 rounded-2xl bg-slate-900/90 border border-slate-800">
-            <div class="flex justify-between items-start mb-3">
-              <div class="flex items-center gap-3">
-                <img src="${post.avatar}" class="w-10 h-10 rounded-full border border-amber-400/40" />
-                <div>
-                  <div class="font-extrabold text-white text-sm">${post.name}</div>
-                  <div class="text-[11px] text-slate-400">Hace un momento</div>
-                </div>
-              </div>
-              <span class="text-[9px] font-extrabold uppercase px-2.5 py-1 rounded-full bg-purple-500/15 text-purple-300 border border-purple-500/30">
-                Sincronización
-              </span>
-            </div>
-            <div class="p-3.5 rounded-xl bg-slate-950/70 border border-slate-800/90 text-xs text-slate-200 mb-3 leading-relaxed">
-              ${post.message}
-            </div>
-            <div class="grid grid-cols-4 gap-2">
-              <button class="py-1.5 rounded-full bg-slate-950 border border-slate-800 text-xs font-extrabold text-sky-400 transition-all hover:bg-slate-800">GG</button>
-              <button class="py-1.5 rounded-full bg-slate-950 border border-slate-800 text-xs font-extrabold text-amber-400 transition-all hover:bg-slate-800">🔥</button>
-              <button class="py-1.5 rounded-full bg-slate-950 border border-slate-800 text-xs font-extrabold text-rose-400 transition-all hover:bg-slate-800">F</button>
-              <button class="py-1.5 rounded-full bg-slate-950 border border-slate-800 text-[10px] font-extrabold text-slate-300 transition-all hover:bg-slate-800">NEXT</button>
-            </div>
-          </div>`;
-      });
-    }
-
-    function savePlayerData(player) {
-      // 1. Guardar en el Ranking
-      let board = JSON.parse(localStorage.getItem('gk_leaderboard')) || [];
-      const index = board.findIndex(p => p.name === player.name && p.tag === player.tag);
-      if (index !== -1) { board[index] = player; } else { board.push(player); }
-      localStorage.setItem('gk_leaderboard', JSON.stringify(board));
-      renderLeaderboard();
-
-      // 2. Crear y guardar publicación en El Muro
-      let feed = JSON.parse(localStorage.getItem('gk_feed')) || [];
-      const msg = `Se conectó al radar oficial. Destaca con <span class="font-extrabold text-white">${player.pts.toLocaleString('es-CL')} pts</span> usando a <span class="font-extrabold text-amber-400">${player.mainChamp}</span> y acumula <span class="font-extrabold text-teal-400">${player.horas}h reales</span> jugadas recientemente.`;
-      
-      feed.unshift({ name: player.name, avatar: player.avatar, message: msg });
-      if (feed.length > 10) feed.pop(); // Mantenemos solo los últimos 10 hitos para no saturar la memoria
-      
-      localStorage.setItem('gk_feed', JSON.stringify(feed));
-      renderFeed();
-    }
-
-    // -----------------------------------------------------
-    // CONEXIÓN PRINCIPAL CON RIOT API
-    // -----------------------------------------------------
-    async function fetchRiotData() {
-      const statusEl = document.getElementById('api-status');
-      const btn = document.getElementById('btn-sync');
-      const gameName = document.getElementById('input-game-name').value.trim();
-      const tagLine = document.getElementById('input-tag-line').value.trim().replace('#', '');
-      const region = document.getElementById('input-region').value;
-      const apiKey = document.getElementById('input-api-key').value.trim();
-
-      try {
-        btn.disabled = true;
-        btn.innerText = 'Cargando...';
-        statusEl.className = 'text-[10px] text-amber-400 mt-2 font-semibold';
-        statusEl.innerText = `Consultando API oficial de Riot para ${gameName}#${tagLine}...`;
-
-        const verRes = await fetch('https://ddragon.leagueoflegends.com/api/versions.json');
-        const ddVer = (await verRes.json())[0];
-        const champRes = await fetch(`https://ddragon.leagueoflegends.com/cdn/${ddVer}/data/es_MX/champion.json`);
-        const champJson = await champRes.json();
-        const champById = {};
-        Object.values(champJson.data).forEach(c => { champById[c.key] = c; });
-
-        const query = new URLSearchParams({ gameName, tagLine, region, apiKey });
-        const res = await fetch(`/.netlify/functions/riot?${query.toString()}`);
-        const data = await res.json();
-
-        if (!res.ok || data.error) throw new Error(data.error || `Error HTTP ${res.status}`);
-        if (!data.account || !data.account.gameName) throw new Error("Respuesta incompleta del servidor.");
-
-        const avatarUrl = `https://ddragon.leagueoflegends.com/cdn/${ddVer}/img/profileicon/${data.summoner.profileIconId}.png`;
-        document.getElementById('profile-avatar').src = avatarUrl;
-        document.getElementById('profile-level').innerText = `LVL ${data.summoner.summonerLevel}`;
-        document.getElementById('profile-name').innerText = `${data.account.gameName} #${data.account.tagLine}`;
-
-        const masteries = data.masteries || [];
-        let mainChampName = '--';
-        let ptsRaw = 0;
-
-        if (masteries[0]) {
-          const c1 = champById[String(masteries[0].championId)] || { id: 'Gangplank', name: 'Campeón', title: '' };
-          mainChampName = c1.name;
-          ptsRaw = masteries[0].championPoints;
-          const splash1 = `https://ddragon.leagueoflegends.com/cdn/img/champion/splash/${c1.id}_0.jpg`;
-
-          document.getElementById('profile-banner').style.backgroundImage = `url('${splash1}')`;
-          document.getElementById('profile-bio').innerText = `Main ${c1.name} (Nivel ${data.summoner.summonerLevel})`;
-          document.getElementById('hero-bg-img').src = splash1;
-          document.getElementById('hero-bg-img').classList.remove('hidden');
-          document.getElementById('hero-badge-right').innerText = `Nivel ${masteries[0].championLevel}`;
-          document.getElementById('hero-title').innerText = c1.name;
-          document.getElementById('hero-metric-val').innerText = ptsRaw.toLocaleString('es-CL');
-        }
-
-        if (masteries[1]) {
-          const c2 = champById[String(masteries[1].championId)];
-          if (c2) {
-            document.getElementById('champ2-img').src = `https://ddragon.leagueoflegends.com/cdn/img/champion/splash/${c2.id}_0.jpg`;
-            document.getElementById('champ2-img').classList.remove('hidden');
-            document.getElementById('champ2-name').innerText = c2.name;
-            document.getElementById('champ2-pts').innerText = masteries[1].championPoints.toLocaleString('es-CL');
-            document.getElementById('champ2-lvl').innerText = `Nivel ${masteries[1].championLevel}`;
-          }
-        }
-
-        if (masteries[2]) {
-          const c3 = champById[String(masteries[2].championId)];
-          if (c3) {
-            document.getElementById('champ3-img').src = `https://ddragon.leagueoflegends.com/cdn/img/champion/splash/${c3.id}_0.jpg`;
-            document.getElementById('champ3-img').classList.remove('hidden');
-            document.getElementById('champ3-name').innerText = c3.name;
-            document.getElementById('champ3-pts').innerText = masteries[2].championPoints.toLocaleString('es-CL');
-            document.getElementById('champ3-lvl').innerText = `Nivel ${masteries[2].championLevel}`;
-          }
-        }
-
-        document.getElementById('stat1-val').innerText = `${data.stats.totalHours}h`;
-        document.getElementById('stat2-val').innerText = data.stats.pentakills;
-        document.getElementById('stat3-val').innerText = `${data.stats.riftHours}h`;
-        document.getElementById('stat4-val').innerText = data.stats.aramMatches;
-
-        statusEl.className = 'text-[10px] text-teal-400 mt-2 font-bold';
-        statusEl.innerText = `✅ Conectado en vivo: ${data.account.gameName}`;
-
-        savePlayerData({
-          name: data.account.gameName,
-          tag: data.account.tagLine,
-          avatar: avatarUrl,
-          mainChamp: mainChampName,
-          pts: ptsRaw,
-          pentakills: data.stats.pentakills || 0,
-          horas: parseFloat(data.stats.totalHours) || 0,
-          aram: data.stats.aramMatches || 0
-        });
-
-      } catch (err) {
-        statusEl.className = 'text-[10px] text-rose-400 mt-2 font-semibold';
-        statusEl.innerText = `❌ ${err.message}`;
-      } finally {
-        btn.disabled = false;
-        btn.innerText = 'Sincronizar';
-      }
-    }
-
-    function switchTab(tab) {
-      ['vitrina', 'arena', 'muro'].forEach(t => {
-        document.getElementById('screen-' + t).classList.add('hidden');
-        document.getElementById('tab-' + t).className = 'flex-1 py-2 text-xs font-bold rounded-xl text-slate-400 hover:text-white transition-all';
-      });
-      document.getElementById('screen-' + tab).classList.remove('hidden');
-      document.getElementById('tab-' + tab).className = 'flex-1 py-2 text-xs font-bold rounded-xl bg-amber-500 text-slate-950 transition-all';
-    }
-
-    window.addEventListener('DOMContentLoaded', () => {
-      renderLeaderboard();
-      renderFeed();
-    });
-  </script>
-</body>
-</html>
+    // 1. INICIALIZAR SUPABASE
+    const supabaseUrl = 'https://skbldoljazqzgybvlybp.supabase.co';
+    const supabaseKey = 'sb_publishable_ktkzsIAjh8gXWQnt519qjg_GlixCYl4';
+    const supabase = supabase.createClient(supabaseUrl
